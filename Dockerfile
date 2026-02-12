@@ -8,17 +8,23 @@ RUN pip install --no-cache-dir uv
 COPY pyproject.toml /app/pyproject.toml
 COPY uv.lock /app/uv.lock
 
-# Create a venv inside the container and install deps from the lock
+# Create venv + install deps from lock (reproducible)
 RUN uv sync --frozen
 
 # Copy application code
 COPY app /app/app
 
+# Copy entrypoint and make it executable
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 EXPOSE 8000
 
-# Use the venv created by uv (.venv) to run commands
-CMD ["sh", "-c", ". .venv/bin/activate && python -m app.wait_for_db && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+#the “main executable” the container always runs
+ENTRYPOINT ["/app/entrypoint.sh"] 
 
+#the default arguments to the entrypoint, can be overridden at runtime
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
 
 
 
